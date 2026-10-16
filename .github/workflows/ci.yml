@@ -75,4 +75,17 @@ jobs:
 
       # Installs the chart once per ci/*-values.yaml file and runs `helm test`.
       - name: ct install
-        run: ct install --config ct.yaml --all
+        run: |
+          set -o pipefail
+          ct install --config ct.yaml --all 2>&1 | tee ct.log
+
+      - name: Annotate failures
+        if: failure()
+        run: |
+          {
+            tail -n 40 ct.log 2>/dev/null
+            echo "### pods"; kubectl get pods -A 2>&1 | grep -vE 'Running|Completed'
+            echo "### warnings"; kubectl get events -A --field-selector type=Warning 2>&1 | tail -n 15
+          } > debug.txt
+          msg="$(sed -e 's/%/%25/g' -e 's/\r/%0D/g' debug.txt | awk 'BEGIN{ORS="%0A"} {print}')"
+          echo "::error title=ct install failed::${msg}"

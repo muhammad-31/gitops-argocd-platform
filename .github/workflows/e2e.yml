@@ -99,6 +99,9 @@ jobs:
             kubectl get applications -n argocd -o json 2>/dev/null | jq -r '.items[] | .metadata.name as $app
               | .status.resources[]? | select(.status != "Synced" or (.health.status // "Healthy") != "Healthy")
               | "\($app): \(.kind)/\(.name) sync=\(.status) health=\(.health.status // "-")"'
+            echo "### Kyverno CRD conversion (runtime)"
+            kubectl get crd validatingpolicies.policies.kyverno.io -o json 2>/dev/null \
+              | jq -c '.spec.conversion | del(.webhook.clientConfig.caBundle)'
             echo "### Pods not running"; kubectl get pods -A -o wide 2>&1 | grep -vE 'Running|Completed'
             echo "### Recent warnings"; kubectl get events -A --field-selector type=Warning --sort-by=.lastTimestamp 2>&1 | tail -n 25
             echo "### Helm"; helm list -A 2>&1
