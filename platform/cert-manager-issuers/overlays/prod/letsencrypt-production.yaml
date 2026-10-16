@@ -1,0 +1,20 @@
+# Public certificates from Let's Encrypt, validated over HTTP-01 through the
+# shared Gateway. Change the email before using this in a real cluster.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: platform-team@example.com
+    privateKeySecretRef:
+      name: letsencrypt-production-account-key
+    solvers:
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - kind: Gateway
+                name: public
+                namespace: envoy-gateway-system
+                sectionName: http

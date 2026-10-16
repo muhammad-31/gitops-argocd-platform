@@ -1,0 +1,16 @@
+# Admission webhooks sit in the request path of every API call they match:
+# run three replicas spread across nodes so upgrades and node loss are invisible.
+admissionController:
+  replicas: 3
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+backgroundController:
+  replicas: 2
+
+cleanupController:
+  replicas: 2
+
+reportsController:
+  replicas: 2

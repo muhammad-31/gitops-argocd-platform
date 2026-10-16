@@ -1,0 +1,9 @@
+# dev (kind): no cloud load balancer, so Envoy is exposed as a ClusterIP
+# service and reached with `make demo` (port-forward).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - envoyproxy-clusterip.yaml
+patches:
+  - path: gatewayclass-parameters.yaml

@@ -1,0 +1,19 @@
+# Issue certificates for Gateway API listeners (cert-manager.io/* annotations
+# on the Gateway). Needs the Gateway API CRDs, which the envoy-gateway add-on installs.
+config:
+  apiVersion: controller.config.cert-manager.io/v1alpha1
+  kind: ControllerConfiguration
+  gatewayAPI:
+    enabled: true
+
+replicaCount: 2
+podDisruptionBudget:
+  enabled: true
+webhook:
+  replicaCount: 2
+  podDisruptionBudget:
+    enabled: true
+cainjector:
+  replicaCount: 2
+  podDisruptionBudget:
+    enabled: true

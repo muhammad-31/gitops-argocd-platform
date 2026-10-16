@@ -1,0 +1,3 @@
+# Installs the Envoy Gateway controller plus the Gateway API CRDs.
+crds:
+  enabled: true

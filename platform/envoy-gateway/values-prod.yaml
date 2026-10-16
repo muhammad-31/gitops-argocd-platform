@@ -1,0 +1,4 @@
+deployment:
+  replicas: 2
+podDisruptionBudget:
+  minAvailable: 1

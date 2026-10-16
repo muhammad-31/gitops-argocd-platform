@@ -1,0 +1,33 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: public
+  namespace: envoy-gateway-system
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+spec:
+  listeners:
+    # Plain HTTP: only routes from this namespace (redirect + ACME solvers).
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+    # One HTTPS listener per public hostname; cert-manager creates the
+    # Certificate and keeps the referenced Secret renewed.
+    - name: https-podinfo
+      protocol: HTTPS
+      port: 443
+      hostname: podinfo.example.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: podinfo-example-com-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              workload-tier: apps

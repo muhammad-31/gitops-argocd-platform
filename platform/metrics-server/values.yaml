@@ -1,0 +1,4 @@
+# Required for HorizontalPodAutoscalers that scale on CPU/memory.
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {memory: 128Mi}
