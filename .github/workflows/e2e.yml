@@ -1,0 +1,99 @@
+name: End-to-end (kind + Argo CD)
+
+# Builds a throwaway kind cluster, installs Argo CD, points it at this commit
+# and waits until every platform component and app is Synced and Healthy.
+# Then calls podinfo through the Envoy gateway.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "bootstrap/**"
+      - "clusters/**"
+      - "platform/**"
+      - "policies/**"
+      - "charts/**"
+      - "apps/**"
+      - ".github/workflows/e2e.yml"
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e
+  cancel-in-progress: true
+
+env:
+  ARGOCD_CHART_VERSION: "10.10.3"
+  KUSTOMIZE_VERSION: "5.8.3"
+
+jobs:
+  kind:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+
+      - name: Install kustomize
+        run: |
+          mkdir -p "$HOME/bin"
+          base="https://github.com/kubernetes-sigs/kustomize/releases/download"
+          curl -sSfL "$base/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "$HOME/bin" kustomize
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
+        with:
+          config: bootstrap/kind-config.yaml
+          cluster_name: gitops-demo
+
+      - name: Install Argo CD
+        run: |
+          helm repo add argo https://argoproj.github.io/argo-helm
+          helm install argocd argo/argo-cd --version "$ARGOCD_CHART_VERSION" \
+            --namespace argocd --create-namespace \
+            --values bootstrap/argocd-values.yaml --wait --timeout 10m
+
+      - name: Apply the dev cluster definition, pinned to this commit
+        env:
+          REPO_URL: https://github.com/${{ github.repository }}.git
+        run: |
+          kustomize build clusters/dev \
+            | sed -e "s#https://github.com/muhammad-31/gitops-argocd-platform.git#${REPO_URL}#g" \
+                  -e "s#targetRevision: main#targetRevision: ${GITHUB_SHA}#g" \
+                  -e "s#revision: main#revision: ${GITHUB_SHA}#g" \
+            | kubectl apply -f -
+
+      - name: Wait for all Applications (8 expected)
+        run: ./hack/wait-for-apps.sh 1200 8
+
+      - name: Smoke test through the gateway
+        run: |
+          svc="$(kubectl -n envoy-gateway-system get svc \
+            -l gateway.envoyproxy.io/owning-gateway-name=public -o name)"
+          kubectl -n envoy-gateway-system port-forward "$svc" 8080:80 >/dev/null 2>&1 &
+          sleep 5
+          curl -fsS -H 'Host: podinfo.dev.local' http://127.0.0.1:8080/ | tee response.json
+          grep -q 'synced by Argo CD' response.json
+
+      - name: Kyverno generated the default-deny NetworkPolicy
+        run: kubectl -n podinfo get networkpolicy default-deny-all
+
+      - name: Policy reports
+        if: always()
+        run: kubectl get policyreports -A || true
+
+      - name: Debug
+        if: failure()
+        run: |
+          kubectl get applications -n argocd -o wide || true
+          kubectl get pods -A -o wide || true
+          kubectl describe applications -n argocd | tail -n 300 || true
+          kubectl get events -A --sort-by=.lastTimestamp | tail -n 100 || true
