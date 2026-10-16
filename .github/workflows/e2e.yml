@@ -54,9 +54,27 @@ jobs:
           config: bootstrap/kind-config.yaml
           cluster_name: gitops-demo
 
-      - name: Install Argo CD
+      # Shared runner IPs get rate-limited by public registries now and then.
+      # Pull the bootstrap images here with retries and load them into kind,
+      # so one 429 cannot fail `helm install --wait`. The platform components
+      # need no help: Argo CD and the kubelet keep retrying those pulls.
+      - name: Preload Argo CD images
         run: |
           helm repo add argo https://argoproj.github.io/argo-helm
+          images="$(helm template argocd argo/argo-cd --version "$ARGOCD_CHART_VERSION" \
+              --namespace argocd --values bootstrap/argocd-values.yaml \
+            | awk '/^[[:space:]-]*image:/ {gsub(/"/, "", $NF); print $NF}' | sort -u)"
+          for image in $images; do
+            for attempt in 1 2 3 4 5; do
+              docker pull --quiet "$image" && break
+              if [ "$attempt" -eq 5 ]; then exit 1; fi
+              sleep $((attempt * 20))
+            done
+            kind load docker-image "$image" --name gitops-demo
+          done
+
+      - name: Install Argo CD
+        run: |
           helm install argocd argo/argo-cd --version "$ARGOCD_CHART_VERSION" \
             --namespace argocd --create-namespace \
             --values bootstrap/argocd-values.yaml --wait --timeout 10m
