@@ -1,0 +1,50 @@
+# Cluster configuration that lives in this repository (Kustomize). These
+# objects use CRDs installed by the add-ons above, so dry-run is skipped while
+# the CRDs are missing and Argo CD retries until they exist.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-config
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - name: gateway
+            path: platform/gateway/overlays/prod
+            namespace: envoy-gateway-system
+          - name: cert-manager-issuers
+            path: platform/cert-manager-issuers/overlays/prod
+            namespace: cert-manager
+          - name: kyverno-policies
+            path: policies/overlays/prod
+            namespace: kyverno
+  template:
+    metadata:
+      name: "{{ .name }}"
+      labels:
+        layer: platform
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/muhammad-31/gitops-argocd-platform.git
+        targetRevision: main
+        path: "{{ .path }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ .namespace }}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - SkipDryRunOnMissingResource=true
+          - ServerSideApply=true
+        retry:
+          limit: 10
+          backoff:
+            duration: 15s
+            factor: 2
+            maxDuration: 5m

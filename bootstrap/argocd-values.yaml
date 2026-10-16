@@ -1,0 +1,49 @@
+# Values for installing Argo CD itself (the only thing installed by hand).
+# Everything else is reconciled from Git by the root Application.
+global:
+  domain: argocd.local
+
+configs:
+  params:
+    # TLS terminates in front of Argo CD (gateway / port-forward for local use).
+    server.insecure: true
+  cm:
+    statusbadge.enabled: true
+    # Do not let Argo CD track resources it generates indirectly.
+    resource.exclusions: |
+      - apiGroups: ["wgpolicyk8s.io", "reports.kyverno.io"]
+        kinds: ["*"]
+        clusters: ["*"]
+  repositories:
+    # Envoy Gateway publishes its chart to Docker Hub as an OCI artifact.
+    envoyproxy-oci:
+      name: envoyproxy
+      type: helm
+      url: docker.io/envoyproxy
+      enableOCI: "true"
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+controller:
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 1Gi}
+
+repoServer:
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 512Mi}
+
+server:
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 256Mi}
+
+applicationSet:
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {memory: 256Mi}

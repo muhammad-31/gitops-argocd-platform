@@ -1,0 +1,60 @@
+# Guard rails for what Argo CD may deploy where.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  description: Cluster add-ons owned by the platform team
+  sourceRepos:
+    - https://github.com/muhammad-31/gitops-argocd-platform.git
+    - https://charts.jetstack.io
+    - https://kyverno.github.io/kyverno/
+    - https://kubernetes-sigs.github.io/metrics-server/
+    - docker.io/envoyproxy
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: cert-manager
+    - server: https://kubernetes.default.svc
+      namespace: kyverno
+    - server: https://kubernetes.default.svc
+      namespace: envoy-gateway-system
+    - server: https://kubernetes.default.svc
+      namespace: kube-system
+  # Add-ons install CRDs, webhooks and cluster roles.
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  description: Application workloads; namespaced resources only
+  sourceRepos:
+    - https://github.com/muhammad-31/gitops-argocd-platform.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "!kube-*"
+    - server: https://kubernetes.default.svc
+      namespace: "!argocd"
+    - server: https://kubernetes.default.svc
+      namespace: "!kyverno"
+    - server: https://kubernetes.default.svc
+      namespace: "!cert-manager"
+    - server: https://kubernetes.default.svc
+      namespace: "!envoy-gateway-system"
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+  # Apps may create their own Namespace (CreateNamespace=true) and nothing else
+  # cluster-scoped: no CRDs, ClusterRoles or webhooks.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota
+    - group: ""
+      kind: LimitRange

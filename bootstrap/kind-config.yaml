@@ -1,0 +1,14 @@
+# Local demo cluster: one control plane, two workers labelled with fake zones
+# so topology spread constraints and PodDisruptionBudgets behave like a real
+# multi-AZ cluster.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: gitops-demo
+nodes:
+  - role: control-plane
+  - role: worker
+    labels:
+      topology.kubernetes.io/zone: zone-a
+  - role: worker
+    labels:
+      topology.kubernetes.io/zone: zone-b
