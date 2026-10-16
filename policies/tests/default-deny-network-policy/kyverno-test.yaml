@@ -1,0 +1,14 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: default-deny-network-policy
+policies:
+  - ../../base/default-deny-network-policy.yaml
+resources:
+  - resources.yaml
+results:
+  - policy: default-deny-network-policy
+    kind: Namespace
+    resources: [shop]
+    generatedResource: generated.yaml
+    result: pass

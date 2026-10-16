@@ -1,0 +1,40 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow latest tag
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Images must be pinned to an explicit tag or digest. ":latest" (or no tag)
+      makes rollbacks impossible and lets two pods of one Deployment run different code.
+spec:
+  validationActions: [Audit]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+    namespaceSelector:
+      matchLabels:
+        workload-tier: apps
+  autogen:
+    podControllers:
+      controllers: [deployments, statefulsets, daemonsets, jobs, cronjobs]
+  variables:
+    - name: images
+      expression: >-
+        object.spec.containers.map(c, c.image)
+        + (has(object.spec.initContainers) ? object.spec.initContainers.map(c, c.image) : [])
+    # Strip the registry part first so "localhost:5000/app" is not mistaken for a tag.
+    - name: untagged
+      expression: >-
+        variables.images.filter(i,
+          i.endsWith(':latest')
+          || (!i.contains('@') && !i.split('/')[i.split('/').size() - 1].contains(':')))
+  validations:
+    - expression: size(variables.untagged) == 0
+      messageExpression: >-
+        'images must use an explicit tag or digest (not :latest): ' + variables.untagged.join(', ')

@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Pod
+metadata: {name: pinned-tag, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "ghcr.io/stefanprodan/podinfo:6.15.0"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: pinned-digest, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "ghcr.io/stefanprodan/podinfo@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: registry-port-and-tag, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "registry.internal:5000/team/app:1.4.2"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: latest-tag, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "ghcr.io/stefanprodan/podinfo:latest"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: no-tag, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "ghcr.io/stefanprodan/podinfo"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: registry-port-no-tag, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "registry.internal:5000/team/app"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: latest-in-init-container, namespace: shop}
+spec:
+  initContainers:
+    - {name: migrate, image: "ghcr.io/example/migrations:latest"}
+  containers:
+    - {name: app, image: "ghcr.io/stefanprodan/podinfo:6.15.0"}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: deployment-with-latest, namespace: shop}
+spec:
+  selector: {matchLabels: {app: web}}
+  template:
+    metadata: {labels: {app: web}}
+    spec:
+      containers:
+        - {name: app, image: "ghcr.io/stefanprodan/podinfo:latest"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: outside-app-namespaces, namespace: tools}
+spec:
+  containers:
+    - {name: debug, image: "docker.io/library/busybox:latest"}

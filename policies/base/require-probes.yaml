@@ -1,0 +1,34 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-probes
+  annotations:
+    policies.kyverno.io/title: Require readiness and liveness probes
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Long-running workloads need a readiness probe (no traffic before the app is
+      ready, zero-downtime rollouts) and a liveness probe (automatic restart when
+      the process hangs). Jobs and CronJobs are intentionally not matched.
+spec:
+  validationActions: [Audit]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [apps]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [deployments, statefulsets, daemonsets]
+    namespaceSelector:
+      matchLabels:
+        workload-tier: apps
+  variables:
+    - name: missing
+      expression: >-
+        object.spec.template.spec.containers
+          .filter(c, !has(c.readinessProbe) || !has(c.livenessProbe))
+          .map(c, c.name)
+  validations:
+    - expression: size(variables.missing) == 0
+      messageExpression: >-
+        object.kind + ' ' + object.metadata.name
+        + ': containers need a readinessProbe and a livenessProbe: ' + variables.missing.join(', ')

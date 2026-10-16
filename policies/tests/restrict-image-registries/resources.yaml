@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Pod
+metadata: {name: ghcr-image, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "ghcr.io/stefanprodan/podinfo:6.15.0"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: ecr-image, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "123456789012.dkr.ecr.us-east-1.amazonaws.com/shop:4f2c1a9"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: docker-official-image, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "docker.io/library/nginx:1.29"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: short-docker-hub-name, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "nginx:1.29"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: unknown-registry, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "registry.example.net/team/app:1.0.0"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: lookalike-registry, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "ghcr.io.evil.example/app:1.0.0"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: sidecar-from-unknown-registry, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "ghcr.io/stefanprodan/podinfo:6.15.0"}
+    - {name: proxy, image: "registry.example.net/proxy:2.0.0"}

@@ -1,0 +1,18 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: restrict-image-registries
+policies:
+  - ../../base/restrict-image-registries.yaml
+resources:
+  - resources.yaml
+variables: values.yaml
+results:
+  - policy: restrict-image-registries
+    kind: Pod
+    resources: [ghcr-image, ecr-image, docker-official-image]
+    result: pass
+  - policy: restrict-image-registries
+    kind: Pod
+    resources: [short-docker-hub-name, unknown-registry, lookalike-registry, sidecar-from-unknown-registry]
+    result: fail

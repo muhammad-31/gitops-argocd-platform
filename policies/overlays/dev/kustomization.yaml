@@ -1,0 +1,6 @@
+# dev: every policy in Audit mode. Violations show up in PolicyReports and the
+# Kyverno UI/metrics, but nothing is blocked while teams iterate.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base

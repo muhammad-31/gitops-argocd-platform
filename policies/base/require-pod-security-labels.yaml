@@ -1,0 +1,32 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-pod-security-labels
+  annotations:
+    policies.kyverno.io/title: Application namespaces enforce the restricted Pod Security Standard
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      The restricted Pod Security Standard (non-root, no privilege escalation,
+      all capabilities dropped, RuntimeDefault seccomp, no host access) is enforced
+      by Kubernetes' built-in Pod Security Admission through namespace labels.
+      This policy makes sure no application namespace is created, or edited,
+      without that label.
+spec:
+  validationActions: [Audit]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [namespaces]
+    objectSelector:
+      matchLabels:
+        workload-tier: apps
+  validations:
+    - expression: >-
+        has(object.metadata.labels)
+        && object.metadata.labels[?'pod-security.kubernetes.io/enforce'].orValue('') == 'restricted'
+      messageExpression: >-
+        'namespace ' + object.metadata.name
+        + ' must have the label pod-security.kubernetes.io/enforce=restricted'

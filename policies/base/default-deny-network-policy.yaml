@@ -1,0 +1,43 @@
+apiVersion: policies.kyverno.io/v1
+kind: GeneratingPolicy
+metadata:
+  name: default-deny-network-policy
+  annotations:
+    policies.kyverno.io/title: Default-deny NetworkPolicy for application namespaces
+    policies.kyverno.io/category: Multi-Tenancy
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Every application namespace starts with a NetworkPolicy that denies all
+      ingress and egress. Workloads then open exactly what they need (the web-app
+      chart ships its own allow rules). Synchronisation recreates the policy if
+      someone deletes it by hand.
+spec:
+  evaluation:
+    synchronize:
+      enabled: true
+    generateExisting:
+      enabled: true
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [namespaces]
+    objectSelector:
+      matchLabels:
+        workload-tier: apps
+  variables:
+    - name: namespace
+      expression: object.metadata.name
+    - name: downstream
+      expression: >-
+        [
+          {
+            "apiVersion": dyn("networking.k8s.io/v1"),
+            "kind": dyn("NetworkPolicy"),
+            "metadata": dyn({"name": "default-deny-all"}),
+            "spec": dyn({"podSelector": {}, "policyTypes": ["Ingress", "Egress"]})
+          }
+        ]
+  generate:
+    - expression: generator.Apply(variables.namespace, variables.downstream)

@@ -1,0 +1,17 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: require-pod-security-labels
+policies:
+  - ../../base/require-pod-security-labels.yaml
+resources:
+  - resources.yaml
+results:
+  - policy: require-pod-security-labels
+    kind: Namespace
+    resources: [shop]
+    result: pass
+  - policy: require-pod-security-labels
+    kind: Namespace
+    resources: [payments, legacy]
+    result: fail

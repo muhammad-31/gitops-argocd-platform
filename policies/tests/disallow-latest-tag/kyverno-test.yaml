@@ -1,0 +1,22 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: disallow-latest-tag
+policies:
+  - ../../base/disallow-latest-tag.yaml
+resources:
+  - resources.yaml
+variables: values.yaml
+results:
+  - policy: disallow-latest-tag
+    kind: Pod
+    resources: [pinned-tag, pinned-digest, registry-port-and-tag]
+    result: pass
+  - policy: disallow-latest-tag
+    kind: Pod
+    resources: [latest-tag, no-tag, registry-port-no-tag, latest-in-init-container]
+    result: fail
+  - policy: disallow-latest-tag
+    kind: Deployment
+    resources: [deployment-with-latest]
+    result: fail

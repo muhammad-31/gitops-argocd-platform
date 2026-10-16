@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: with-probes, namespace: shop}
+spec:
+  selector: {matchLabels: {app: with-probes}}
+  template:
+    metadata: {labels: {app: with-probes}}
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/stefanprodan/podinfo:6.15.0
+          readinessProbe: {httpGet: {path: /readyz, port: 9898}}
+          livenessProbe: {httpGet: {path: /healthz, port: 9898}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: readiness-only, namespace: shop}
+spec:
+  selector: {matchLabels: {app: readiness-only}}
+  template:
+    metadata: {labels: {app: readiness-only}}
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/stefanprodan/podinfo:6.15.0
+          readinessProbe: {httpGet: {path: /readyz, port: 9898}}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: no-probes, namespace: shop}
+spec:
+  serviceName: no-probes
+  selector: {matchLabels: {app: no-probes}}
+  template:
+    metadata: {labels: {app: no-probes}}
+    spec:
+      containers:
+        - {name: db, image: "docker.io/library/postgres:17.6"}

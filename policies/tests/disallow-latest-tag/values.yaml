@@ -1,0 +1,8 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Values
+namespaceSelector:
+  - name: shop
+    labels:
+      workload-tier: apps
+  - name: tools
+    labels: {}

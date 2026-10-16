@@ -1,0 +1,43 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-requests-limits
+  annotations:
+    policies.kyverno.io/title: Require requests and memory limits
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Every container must request CPU and memory (so the scheduler can place it
+      and the HPA can scale on utilisation) and set a memory limit (so one leak
+      cannot take the node down). CPU limits are deliberately not required: they
+      cause throttling with little benefit when requests are set correctly.
+spec:
+  validationActions: [Audit]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+    namespaceSelector:
+      matchLabels:
+        workload-tier: apps
+  autogen:
+    podControllers:
+      controllers: [deployments, statefulsets, daemonsets, jobs, cronjobs]
+  variables:
+    - name: containers
+      expression: >-
+        object.spec.containers
+        + (has(object.spec.initContainers) ? object.spec.initContainers : [])
+    - name: missing
+      expression: >-
+        variables.containers.filter(c,
+          !has(c.resources) || !has(c.resources.requests) || !has(c.resources.limits)
+          || !('cpu' in c.resources.requests) || !('memory' in c.resources.requests)
+          || !('memory' in c.resources.limits)
+        ).map(c, c.name)
+  validations:
+    - expression: size(variables.missing) == 0
+      messageExpression: >-
+        'containers must set requests.cpu, requests.memory and limits.memory: ' + variables.missing.join(', ')

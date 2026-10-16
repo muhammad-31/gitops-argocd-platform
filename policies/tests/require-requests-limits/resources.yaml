@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Pod
+metadata: {name: complete, namespace: shop}
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/stefanprodan/podinfo:6.15.0
+      resources:
+        requests: {cpu: 50m, memory: 64Mi}
+        limits: {memory: 128Mi}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: no-resources, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "ghcr.io/stefanprodan/podinfo:6.15.0"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: no-memory-limit, namespace: shop}
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/stefanprodan/podinfo:6.15.0
+      resources:
+        requests: {cpu: 50m, memory: 64Mi}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: init-container-without-requests, namespace: shop}
+spec:
+  initContainers:
+    - {name: migrate, image: "ghcr.io/example/migrations:1.0.0"}
+  containers:
+    - name: app
+      image: ghcr.io/stefanprodan/podinfo:6.15.0
+      resources:
+        requests: {cpu: 50m, memory: 64Mi}
+        limits: {memory: 128Mi}

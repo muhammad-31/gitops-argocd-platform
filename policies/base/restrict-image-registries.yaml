@@ -1,0 +1,45 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: restrict-image-registries
+  annotations:
+    policies.kyverno.io/title: Restrict image registries
+    policies.kyverno.io/category: Supply Chain
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Only pull images from approved registries. Images must be fully qualified
+      (registry/repository:tag) so the source is explicit in every manifest.
+      Extend the allow-list with your own registry, for example an ECR account.
+spec:
+  validationActions: [Audit]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+    namespaceSelector:
+      matchLabels:
+        workload-tier: apps
+  autogen:
+    podControllers:
+      controllers: [deployments, statefulsets, daemonsets, jobs, cronjobs]
+  variables:
+    - name: images
+      expression: >-
+        object.spec.containers.map(c, c.image)
+        + (has(object.spec.initContainers) ? object.spec.initContainers.map(c, c.image) : [])
+        + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers.map(c, c.image) : [])
+    - name: allowedPrefixes
+      expression: >-
+        ['ghcr.io/', 'registry.k8s.io/', 'quay.io/', 'public.ecr.aws/', 'docker.io/library/']
+    - name: rejected
+      expression: >-
+        variables.images.filter(i,
+          !variables.allowedPrefixes.exists(p, i.startsWith(p))
+          && !i.matches('^[0-9]{12}[.]dkr[.]ecr[.][a-z0-9-]+[.]amazonaws[.]com/'))
+  validations:
+    - expression: size(variables.rejected) == 0
+      messageExpression: >-
+        'images from unapproved registries: ' + variables.rejected.join(', ')
+        + ' (allowed: ghcr.io, registry.k8s.io, quay.io, public.ecr.aws, docker.io/library, Amazon ECR)'
