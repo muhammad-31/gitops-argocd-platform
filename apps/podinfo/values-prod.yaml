@@ -1,0 +1,25 @@
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+env:
+  PODINFO_UI_COLOR: "#2f6f8f"
+  PODINFO_UI_MESSAGE: "prod"
+
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: public
+      namespace: envoy-gateway-system
+      sectionName: https-podinfo
+  hostnames:
+    - podinfo.example.com

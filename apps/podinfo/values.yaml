@@ -1,0 +1,18 @@
+# podinfo: a small Go web service used here as the sample workload.
+image:
+  repository: ghcr.io/stefanprodan/podinfo
+  tag: "6.15.0"
+
+containerPort: 9898
+
+env:
+  PODINFO_UI_COLOR: "#2f6f8f"
+
+writableDirs:
+  - path: /tmp
+    sizeLimit: 32Mi
+  - path: /data
+    sizeLimit: 64Mi
+
+httpRoute:
+  enabled: true

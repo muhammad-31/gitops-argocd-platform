@@ -1,0 +1,14 @@
+replicaCount: 1
+
+env:
+  PODINFO_UI_COLOR: "#2f6f8f"
+  PODINFO_UI_MESSAGE: "dev - synced by Argo CD"
+
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: public
+      namespace: envoy-gateway-system
+      sectionName: http
+  hostnames:
+    - podinfo.dev.local
