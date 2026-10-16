@@ -9,6 +9,11 @@ configs:
     server.insecure: true
   cm:
     statusbadge.enabled: true
+    # Aggregated ClusterRoles (Kyverno ships several) get their rules filled in
+    # by the API server, so they would always look OutOfSync. Compare them by
+    # aggregation selector instead.
+    resource.compareoptions: |
+      ignoreAggregatedRoles: true
     # Do not let Argo CD track resources it generates indirectly.
     resource.exclusions: |
       - apiGroups: ["wgpolicyk8s.io", "reports.kyverno.io"]
