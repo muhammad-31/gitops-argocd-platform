@@ -1,0 +1,37 @@
+# `helm test <release>`: calls the readiness endpoint through the Service.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "web-app.fullname" . }}-test
+  namespace: {{ .Release.Namespace }}
+  # Deliberately not using the selector labels, so the Service never routes to it.
+  labels:
+    app.kubernetes.io/name: {{ include "web-app.name" . }}-test
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: test
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: wget
+      image: docker.io/library/busybox:1.37
+      command: ["wget", "-q", "-O-", "http://{{ include "web-app.fullname" . }}:{{ .Values.service.port }}{{ .Values.probes.readiness.path }}"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          memory: 32Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]

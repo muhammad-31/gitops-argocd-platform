@@ -1,0 +1,10 @@
+{{ include "web-app.fullname" . }} is deployed with image {{ include "web-app.image" . }}.
+
+{{- if .Values.httpRoute.enabled }}
+Exposed through the Gateway API HTTPRoute "{{ include "web-app.fullname" . }}"{{ with .Values.httpRoute.hostnames }} for {{ join ", " . }}{{ end }}.
+{{- else if .Values.ingress.enabled }}
+Exposed through the Ingress "{{ include "web-app.fullname" . }}".
+{{- else }}
+Not exposed outside the cluster. To try it locally:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "web-app.fullname" . }} 8080:{{ .Values.service.port }}
+{{- end }}

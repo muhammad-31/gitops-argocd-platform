@@ -1,0 +1,14 @@
+apiVersion: v2
+name: web-app
+description: Helm chart for a stateless HTTP service with secure, production-ready defaults
+type: application
+version: 1.0.0
+appVersion: "6.15.0"
+kubeVersion: ">=1.30.0-0"
+keywords: [web, http, deployment, gateway-api, hpa]
+home: https://github.com/muhammad-31/gitops-argocd-platform
+sources:
+  - https://github.com/muhammad-31/gitops-argocd-platform/tree/main/charts/web-app
+maintainers:
+  - name: Muhammad Bin Amir
+    url: https://github.com/muhammad-31

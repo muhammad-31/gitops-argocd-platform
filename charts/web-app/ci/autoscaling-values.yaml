@@ -1,0 +1,11 @@
+# chart-testing: HPA on, pinned by tag, extra env and startup probe.
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetMemoryUtilizationPercentage: 80
+probes:
+  startup:
+    enabled: true
+env:
+  PODINFO_UI_MESSAGE: "chart-testing"

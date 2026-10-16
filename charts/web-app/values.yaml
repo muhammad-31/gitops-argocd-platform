@@ -1,0 +1,148 @@
+# -- Override the chart name used in resource names.
+nameOverride: ""
+# -- Override the full resource name.
+fullnameOverride: ""
+
+image:
+  # -- Image repository. Must be fully qualified (registry/repository).
+  repository: ghcr.io/stefanprodan/podinfo
+  # -- Image tag. Defaults to the chart appVersion.
+  tag: ""
+  # -- Image digest (sha256:...). When set it wins over the tag.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# -- Replicas when autoscaling is disabled.
+replicaCount: 2
+
+# -- Port the container listens on.
+containerPort: 9898
+# -- Optional container command/args overrides.
+command: []
+args: []
+
+# -- Plain environment variables (name: value).
+env: {}
+# -- Extra env sources, e.g. [{secretRef: {name: app-secrets}}].
+envFrom: []
+
+service:
+  type: ClusterIP
+  port: 80
+
+probes:
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readiness:
+    path: /readyz
+    initialDelaySeconds: 2
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+  startup:
+    # -- Enable for slow-starting apps instead of a long liveness delay.
+    enabled: false
+    path: /healthz
+    periodSeconds: 2
+    failureThreshold: 30
+
+# -- Requests are required; there is no CPU limit on purpose (avoids throttling).
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  # -- Optional memory target; null disables it.
+  targetMemoryUtilizationPercentage: null
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+serviceAccount:
+  create: true
+  # -- Name to use; generated from the release name when empty.
+  name: ""
+  # -- e.g. eks.amazonaws.com/role-arn for IRSA.
+  annotations: {}
+  # -- Mount the API token only if the app talks to the Kubernetes API.
+  automountToken: false
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+# -- Writable emptyDir volumes, since the root filesystem is read-only.
+writableDirs:
+  - path: /tmp
+    sizeLimit: 64Mi
+
+networkPolicy:
+  enabled: true
+  # -- Peers allowed to reach the app port (NetworkPolicyPeer list).
+  ingressFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+  # -- Allow DNS lookups to kube-system.
+  allowDNS: true
+  # -- Extra egress rules (NetworkPolicyEgressRule list).
+  egress: []
+
+httpRoute:
+  # -- Expose the service through a Gateway API HTTPRoute.
+  enabled: false
+  parentRefs:
+    - name: public
+      namespace: envoy-gateway-system
+  hostnames: []
+  path: /
+
+ingress:
+  # -- Classic Ingress, for clusters without Gateway API.
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  #  - host: app.example.com
+  #    paths: [/]
+  tls: []
+
+# -- Spread replicas across zones and nodes (best effort).
+topologySpread:
+  enabled: true
+
+# -- Seconds to keep serving after the pod is marked terminating, so the
+# gateway and endpoints stop sending traffic before SIGTERM.
+preStopSleepSeconds: 5
+terminationGracePeriodSeconds: 30
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
