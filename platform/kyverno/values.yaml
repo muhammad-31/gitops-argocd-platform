@@ -1,6 +1,14 @@
 crds:
   install: true
 
+# The policies.kyverno.io CRDs come from the kyverno-api subchart, which
+# renders `labels: {}` when no labels are set. The API server drops the empty
+# map, so Argo CD would report those CRDs as permanently OutOfSync.
+kyverno-api:
+  labels:
+    app.kubernetes.io/part-of: kyverno
+    app.kubernetes.io/component: crds
+
 admissionController:
   replicas: 1
   container:
