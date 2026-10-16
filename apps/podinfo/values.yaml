@@ -16,3 +16,14 @@ writableDirs:
 
 httpRoute:
   enabled: true
+
+networkPolicy:
+  ingressFrom:
+    # traffic from the shared gateway
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+    # Prometheus scraping /metrics (k8s-observability-stack)
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
