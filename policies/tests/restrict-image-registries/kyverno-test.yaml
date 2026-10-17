@@ -14,5 +14,6 @@ results:
     result: pass
   - policy: restrict-image-registries
     kind: Pod
-    resources: [short-docker-hub-name, unknown-registry, lookalike-registry, sidecar-from-unknown-registry]
+    resources: [short-docker-hub-name, unknown-registry, lookalike-registry, sidecar-from-unknown-registry,
+                other-ghcr-namespace, other-ecr-account, public-registry-not-allowed]
     result: fail

@@ -108,12 +108,12 @@ your own changes, fork the repository and point the manifests at the fork:
 | `disallow-latest-tag` | every image has an explicit tag or digest, never `:latest` | Audit | Deny |
 | `require-requests-limits` | CPU/memory requests and a memory limit on every container | Audit | Deny |
 | `require-probes` | readiness and liveness probes on Deployments, StatefulSets, DaemonSets | Audit | Deny |
-| `restrict-image-registries` | images come from an allow-list of registries | Audit | Deny |
+| `restrict-image-registries` | images come from approved repositories (own GHCR namespace, one ECR account, Docker Official Images) | Audit | Deny |
 | `require-pod-security-labels` | app namespaces keep `pod-security.kubernetes.io/enforce=restricted` | Audit | Deny |
 | `default-deny-network-policy` | generates a default-deny NetworkPolicy in every app namespace | on | on |
 
 ```bash
-make test-policies   # 27 test cases: compliant and non-compliant resources per policy
+make test-policies   # 30 test cases: compliant and non-compliant resources per policy
 ```
 
 ## Design decisions

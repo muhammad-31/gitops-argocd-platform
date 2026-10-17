@@ -47,3 +47,24 @@ spec:
   containers:
     - {name: app, image: "ghcr.io/stefanprodan/podinfo:6.15.0"}
     - {name: proxy, image: "registry.example.net/proxy:2.0.0"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: other-ghcr-namespace, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "ghcr.io/someone-else/app:1.0.0"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: other-ecr-account, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "999999999999.dkr.ecr.us-east-1.amazonaws.com/shop:4f2c1a9"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: public-registry-not-allowed, namespace: shop}
+spec:
+  containers:
+    - {name: app, image: "quay.io/someone/app:1.0.0"}

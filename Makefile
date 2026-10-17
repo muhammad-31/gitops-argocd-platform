@@ -1,7 +1,7 @@
 # Local workflow. `make up` builds the whole platform on a kind cluster.
-CLUSTER        ?= gitops-demo
-ENV            ?= dev
-ARGOCD_VERSION ?= 10.10.3
+CLUSTER              ?= gitops-demo
+ENV                  ?= dev
+ARGOCD_CHART_VERSION ?= 10.10.3
 
 .DEFAULT_GOAL := help
 
@@ -27,7 +27,7 @@ cluster: ## Create the kind cluster
 .PHONY: argocd
 argocd: ## Install Argo CD (the only manual install)
 	helm repo add argo https://argoproj.github.io/argo-helm --force-update
-	helm upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+	helm upgrade --install argocd argo/argo-cd --version $(ARGOCD_CHART_VERSION) \
 		--namespace argocd --create-namespace \
 		--values bootstrap/argocd-values.yaml --wait --timeout 10m
 
