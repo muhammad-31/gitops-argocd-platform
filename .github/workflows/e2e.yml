@@ -60,17 +60,21 @@ jobs:
       # need no help: Argo CD and the kubelet keep retrying those pulls.
       - name: Preload Argo CD images
         run: |
-          helm repo add argo https://argoproj.github.io/argo-helm
+          retry() { for attempt in 1 2 3 4 5; do "$@" && return 0; sleep $((attempt * 15)); done; return 1; }
+          retry helm repo add argo https://argoproj.github.io/argo-helm \
+            || { echo "::error title=Preload::could not add the argo Helm repository"; exit 1; }
           images="$(helm template argocd argo/argo-cd --version "$ARGOCD_CHART_VERSION" \
               --namespace argocd --values bootstrap/argocd-values.yaml \
-            | awk '/^[[:space:]-]*image:/ {gsub(/"/, "", $NF); print $NF}' | sort -u)"
+            | awk '/^[[:space:]-]*image:/ {gsub(/"/, "", $NF); print $NF}' | sort -u)" \
+            || { echo "::error title=Preload::helm template of the Argo CD chart failed"; exit 1; }
           for image in $images; do
-            for attempt in 1 2 3 4 5; do
-              docker pull --quiet "$image" && break
-              if [ "$attempt" -eq 5 ]; then exit 1; fi
-              sleep $((attempt * 20))
-            done
-            kind load docker-image "$image" --name gitops-demo
+            # Best effort: if the runner cannot pull it either, the cluster still
+            # can (with the kubelet's own backoff) during `helm install --wait`.
+            if retry docker pull --quiet "$image"; then
+              kind load docker-image "$image" --name gitops-demo
+            else
+              echo "::warning title=Preload::could not pull ${image}; leaving it to the cluster"
+            fi
           done
 
       - name: Install Argo CD
@@ -111,6 +115,7 @@ jobs:
       - name: Debug
         if: failure()
         run: |
+          set +e  # collect whatever exists, even if Argo CD never came up
           {
             echo "### Applications"; kubectl get applications -n argocd -o wide 2>&1
             echo "### Resources not in sync"
