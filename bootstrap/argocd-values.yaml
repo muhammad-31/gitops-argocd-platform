@@ -7,6 +7,11 @@ configs:
   params:
     # TLS terminates in front of Argo CD (gateway / port-forward for local use).
     server.insecure: true
+    # Compute diffs with a server-side dry-run apply, so defaults and
+    # normalisation done by the API server (empty maps dropped, CRD defaults)
+    # do not show up as drift. Recommended by Kyverno for Argo CD and the
+    # natural pair of the ServerSideApply sync option used everywhere here.
+    controller.diff.server.side: "true"
   cm:
     statusbadge.enabled: true
     # Aggregated ClusterRoles (Kyverno ships several) get their rules filled in

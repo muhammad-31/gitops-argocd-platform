@@ -124,6 +124,18 @@ jobs:
             for app in $(kubectl get applications -n argocd -o json | jq -r '.items[] | select(.status.sync.status != "Synced") | .metadata.name'); do
               echo "--- $app"; /tmp/argocd app diff "$app" --core 2>&1 | head -n 40
             done
+            echo "### First OutOfSync CRD, Git (<) vs live (>)"
+            read -r app crd < <(kubectl get applications -n argocd -o json | jq -r '.items[] | .metadata.name as $a
+              | .status.resources[]? | select(.status == "OutOfSync" and .kind == "CustomResourceDefinition")
+              | "\($a) \(.name)"' | head -n 1) || true
+            if [ -n "${crd:-}" ]; then
+              /tmp/argocd app manifests "$app" --core --source git > desired.yaml 2>&1 || true
+              yq -o json "select(.kind == \"CustomResourceDefinition\" and .metadata.name == \"$crd\")" desired.yaml \
+                | jq -S '{labels: .metadata.labels, annotations: .metadata.annotations, spec: .spec}' > desired.json || true
+              kubectl get crd "$crd" -o json \
+                | jq -S '{labels: .metadata.labels, annotations: .metadata.annotations, spec: .spec}' > live.json || true
+              echo "$crd"; diff desired.json live.json | head -n 40 || true
+            fi
             echo "### Pods not running"; kubectl get pods -A -o wide 2>&1 | grep -vE 'Running|Completed'
             echo "### Recent warnings"; kubectl get events -A --field-selector type=Warning --sort-by=.lastTimestamp 2>&1 | tail -n 25
             echo "### Helm"; helm list -A 2>&1
@@ -131,5 +143,5 @@ jobs:
           cat debug.txt
           kubectl describe applications -n argocd | tail -n 300 || true
           # Also as an annotation, so it shows on the run summary.
-          msg="$(tail -n 70 debug.txt | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN{ORS="%0A"} {print}')"
+          msg="$(head -n 160 debug.txt | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN{ORS="%0A"} {print}')"
           echo "::error title=e2e debug::${msg}"
